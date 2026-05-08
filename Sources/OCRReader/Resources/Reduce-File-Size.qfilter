@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Domains</key>
+    <dict>
+        <key>Applies to PDF documents</key><true/>
+    </dict>
+    <key>FilterData</key>
+    <dict>
+        <key>ColorSettings</key>
+        <dict>
+            <key>ImageSettings</key>
+            <dict>
+                <key>Compression Quality</key><real>0.7</real>
+                <key>ImageSizeMax</key><integer>1500</integer>
+                <key>Compression</key><string>JPEG</string>
+                <key>Resolution</key><integer>150</integer>
+                <key>Downsample</key><integer>200</integer>
+            </dict>
+        </dict>
+    </dict>
+    <key>FilterType</key><integer>1</integer>
+    <key>Name</key><string>Reduce File Size (legal-doc tuned)</string>
+</dict>
+</plist>

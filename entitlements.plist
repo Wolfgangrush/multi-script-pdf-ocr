@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+        Sandbox dropped in v0.2 because the bundled Tesseract binary is
+        executed as a subprocess. Sandbox is incompatible with arbitrary
+        subprocess spawning. The app remains fully offline (no network
+        entitlement) and ad-hoc signed for personal use.
+    -->
+</dict>
+</plist>
