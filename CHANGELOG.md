@@ -2,6 +2,8 @@
 
 ## v0.3.0 — 2026-05-13
 
+- **App icon added.** Custom AppIcon.icns (16/32/128/256/512 + @2x retina) generated from a 1024×1024 source and wired via `CFBundleIconFile`. The icon shows a document with an `अ` glyph and OCR magnifier — signalling the multi-script PDF OCR purpose.
+- **Close PDF button + ⌘W shortcut.** Toolbar now has an `xmark.circle` button next to the filename. Also surfaced as `File → Close PDF` in the menu bar. Closing clears the document, OCR pages, sidebar, and any banner. Disabled while OCR or compression is in progress.
 - **Banner UX overhauled.** Success messages auto-dismiss after 4s. Info and error messages are persistent until the user clicks the close button — fixes the case where a 3-second banner flashed past while the user was looking at Finder for the output file. Banner now carries an icon (✓ / i / ⚠) and outline colour per level (green / blue / orange).
 - **Save Reduced shows progress.** The toolbar button now displays a spinner with "Compressing…" while the compressor runs, and is disabled to prevent double-clicks. Compression yields to the run-loop so the spinner renders before PDFKit starts crunching.
 - **Friendlier "already optimised" path.** Instead of `Save failed: Already optimised…`, the banner now reads `PDF already well-compressed — no reduction possible. Source is X MB; a re-encoded copy would be Y MB. No file written.` It is shown as info (blue), not error.

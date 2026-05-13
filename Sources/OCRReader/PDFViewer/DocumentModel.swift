@@ -62,6 +62,16 @@ final class DocumentModel: ObservableObject {
         dismissBanner()
     }
 
+    func closeDocument() {
+        guard document != nil else { return }
+        self.document = nil
+        self.fileURL = nil
+        self.ocrPages = []
+        self.showOCRSidebar = false
+        self.ocrProgressText = ""
+        dismissBanner()
+    }
+
     func runOCR() async {
         guard let pdf = document else { return }
         isRunningOCR = true

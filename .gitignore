@@ -13,6 +13,9 @@ DerivedData/
 # Build artefacts
 build/
 
+# Iconset is derived from the 1024×1024 source; only AppIcon.icns is committed.
+Resources/AppIcon.iconset/
+
 # macOS
 .DS_Store
 .AppleDouble

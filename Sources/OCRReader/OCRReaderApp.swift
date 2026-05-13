@@ -15,6 +15,9 @@ struct MultiScriptOCRApp: App {
             CommandGroup(replacing: .newItem) {
                 Button("Open PDF…") { doc.openWithPanel() }
                     .keyboardShortcut("o")
+                Button("Close PDF") { doc.closeDocument() }
+                    .keyboardShortcut("w")
+                    .disabled(doc.document == nil)
             }
             CommandGroup(replacing: .saveItem) {
                 Button("Save Reduced") { doc.saveReduced() }

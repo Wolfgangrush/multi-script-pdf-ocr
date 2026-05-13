@@ -51,6 +51,14 @@ mkdir -p "$APP_DIR/Contents/Resources/tessdata"
 
 cp "$EXECUTABLE" "$APP_DIR/Contents/MacOS/$APP_NAME"
 
+# App icon — copy the prebuilt .icns into the bundle.
+ICON_SRC="$PROJECT_ROOT/Resources/AppIcon.icns"
+if [[ -f "$ICON_SRC" ]]; then
+    cp "$ICON_SRC" "$APP_DIR/Contents/Resources/AppIcon.icns"
+else
+    echo "  ⚠ AppIcon.icns not found at $ICON_SRC"
+fi
+
 # Info.plist
 cat > "$APP_DIR/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -61,6 +69,8 @@ cat > "$APP_DIR/Contents/Info.plist" <<PLIST
     <key>CFBundleIdentifier</key><string>${BUNDLE_ID}</string>
     <key>CFBundleName</key><string>${APP_DISPLAY_NAME}</string>
     <key>CFBundleDisplayName</key><string>${APP_DISPLAY_NAME}</string>
+    <key>CFBundleIconFile</key><string>AppIcon</string>
+    <key>CFBundleIconName</key><string>AppIcon</string>
     <key>CFBundleVersion</key><string>${VERSION}</string>
     <key>CFBundleShortVersionString</key><string>${VERSION}</string>
     <key>CFBundlePackageType</key><string>APPL</string>

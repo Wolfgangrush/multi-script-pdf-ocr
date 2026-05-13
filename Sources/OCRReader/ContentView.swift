@@ -92,6 +92,14 @@ struct ContentView: View {
                     .truncationMode(.middle)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: 260)
+                Button(action: doc.closeDocument) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.borderless)
+                .help("Close this PDF (⌘W)")
+                .keyboardShortcut("w")
+                .disabled(doc.isRunningOCR || doc.isSavingReduced)
             }
         }
         .padding(.horizontal, 12)
