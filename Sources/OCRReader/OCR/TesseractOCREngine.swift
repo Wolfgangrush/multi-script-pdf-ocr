@@ -28,7 +28,7 @@ public struct TesseractOCREngine: OCREngine {
         guard let resourcePath = bundle.resourcePath else {
             throw OCRError.engineFailure("Bundle resourcePath unavailable")
         }
-        let bundlePath = bundle.bundlePath  // .../Legal OCR Reader.app
+        let bundlePath = bundle.bundlePath  // .../Multi-Script PDF OCR.app
         let tesseractURL = URL(fileURLWithPath: bundlePath)
             .appendingPathComponent("Contents/MacOS/tesseract")
         let tessdataDir = URL(fileURLWithPath: resourcePath)

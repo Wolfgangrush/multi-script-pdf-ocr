@@ -1,11 +1,12 @@
 import SwiftUI
+import AppKit
 
 @main
-struct LegalOCRReaderApp: App {
+struct MultiScriptOCRApp: App {
     @StateObject private var doc = DocumentModel()
 
     var body: some Scene {
-        WindowGroup("Legal OCR Reader") {
+        WindowGroup("Multi-Script PDF OCR") {
             ContentView()
                 .environmentObject(doc)
                 .frame(minWidth: 700, minHeight: 600)
@@ -19,6 +20,13 @@ struct LegalOCRReaderApp: App {
                 Button("Save Reduced") { doc.saveReduced() }
                     .keyboardShortcut("s")
                     .disabled(doc.document == nil)
+            }
+            CommandGroup(replacing: .help) {
+                Button("Contact Support…") {
+                    if let url = URL(string: "mailto:wolfgangrush@gmail.com?subject=Multi-Script%20PDF%20OCR%20Support") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
             }
         }
     }

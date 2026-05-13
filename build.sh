@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# build.sh — produces Legal OCR Reader.app + DMG with Tesseract bundled
+# build.sh — produces Multi-Script PDF OCR.app + DMG with Tesseract bundled
 # Usage: bash build.sh
 
 set -euo pipefail
@@ -8,17 +8,19 @@ PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 BUILD_DIR="$PROJECT_ROOT/build"
 DMG_OUT_DIR="$HOME/Downloads/Dmgs"
 APP_NAME="OCRReader"
-APP_DISPLAY_NAME="Legal OCR Reader"
-DMG_VOLNAME="Legal OCR Reader"
-VERSION="0.2.0"
-DMG_NAME="LegalOCRReader-v${VERSION}.dmg"
+APP_DISPLAY_NAME="Multi-Script PDF OCR"
+DMG_VOLNAME="Multi-Script PDF OCR"
+VERSION="0.3.0"
+DMG_NAME="MultiScriptPDF-OCR-v${VERSION}.dmg"
+BUNDLE_ID="net.wolfgangrush.MultiScriptOCR"
+SUPPORT_EMAIL="wolfgangrush@gmail.com"
 
 # Indian-language traineddata files we bundle. Keep this list in sync with
 # OCRLanguage cases in Sources/OCRReader/OCR/OCREngine.swift.
 LANG_FILES=(eng osd hin mar tam tel kan mal guj pan ben ori urd san)
 
 echo "──────────────────────────────────────"
-echo " Legal OCR Reader build · v${VERSION}"
+echo " ${APP_DISPLAY_NAME} build · v${VERSION}"
 echo " Source : $PROJECT_ROOT"
 echo " Output : $DMG_OUT_DIR/$DMG_NAME"
 echo "──────────────────────────────────────"
@@ -49,24 +51,14 @@ mkdir -p "$APP_DIR/Contents/Resources/tessdata"
 
 cp "$EXECUTABLE" "$APP_DIR/Contents/MacOS/$APP_NAME"
 
-# SwiftPM resource bundle for Quartz filter
-RBUNDLE="$RESOURCE_BUNDLE_DIR/${APP_NAME}_${APP_NAME}.bundle"
-if [[ -d "$RBUNDLE" ]]; then
-    cp -R "$RBUNDLE" "$APP_DIR/Contents/Resources/"
-fi
-if [[ -f "$PROJECT_ROOT/Sources/OCRReader/Resources/Reduce-File-Size.qfilter" ]]; then
-    cp "$PROJECT_ROOT/Sources/OCRReader/Resources/Reduce-File-Size.qfilter" \
-       "$APP_DIR/Contents/Resources/" 2>/dev/null || true
-fi
-
-# Info.plist (Legal OCR Reader display name)
+# Info.plist
 cat > "$APP_DIR/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
     <key>CFBundleExecutable</key><string>${APP_NAME}</string>
-    <key>CFBundleIdentifier</key><string>net.wolfgangrush.legalocrreader</string>
+    <key>CFBundleIdentifier</key><string>${BUNDLE_ID}</string>
     <key>CFBundleName</key><string>${APP_DISPLAY_NAME}</string>
     <key>CFBundleDisplayName</key><string>${APP_DISPLAY_NAME}</string>
     <key>CFBundleVersion</key><string>${VERSION}</string>
@@ -75,6 +67,7 @@ cat > "$APP_DIR/Contents/Info.plist" <<PLIST
     <key>LSMinimumSystemVersion</key><string>13.0</string>
     <key>NSHighResolutionCapable</key><true/>
     <key>NSPrincipalClass</key><string>NSApplication</string>
+    <key>NSHumanReadableCopyright</key><string>© 2026 Wolfgang Rush. Support: ${SUPPORT_EMAIL}</string>
     <key>CFBundleDocumentTypes</key>
     <array>
         <dict>

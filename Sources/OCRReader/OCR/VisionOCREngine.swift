@@ -20,10 +20,20 @@ public struct VisionOCREngine: OCREngine {
             }
             req.recognitionLevel = .accurate
             req.usesLanguageCorrection = true
-            // Vision (as of macOS 14) supports: en, fr, it, de, es, pt-BR, zh-Hans/Hant,
-            // yue, ko, ja, ru, uk, th, vi, ar. No Indic scripts. We let it auto-detect for
-            // the European/CJK set; Indic-script PDFs should use Gemini mode (toggle in UI).
-            req.automaticallyDetectsLanguage = true
+
+            // CRITICAL: pin to English. Vision supports en/fr/it/de/es/pt-BR/zh/yue/ko/
+            // ja/ru/uk/th/vi/ar but NOT any Indic script. With auto-detection on, any
+            // Devanagari/Tamil/etc. on the page is fitted to the closest visually-similar
+            // supported script — typically Thai (matra strokes look alike) — producing
+            // garbage like "สาย / ดิ / อะ" instead of returning nothing. Pinning to en-US
+            // means non-Latin glyphs are skipped cleanly, and English text is recognised
+            // without the language ambiguity that contaminates mixed-script pages.
+            //
+            // For documents with actual Devanagari, the user should pick a Tesseract
+            // language from the picker. "मराठी + English (mixed)" (mar+eng) handles
+            // mixed Devanagari/Latin pages.
+            req.recognitionLanguages = ["en-US"]
+            req.automaticallyDetectsLanguage = false
 
             do {
                 try VNImageRequestHandler(cgImage: cgImage, options: [:]).perform([req])

@@ -11,10 +11,7 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "OCRReader",
-            path: "Sources/OCRReader",
-            resources: [
-                .copy("Resources/Reduce-File-Size.qfilter")
-            ]
+            path: "Sources/OCRReader"
         )
     ]
 )

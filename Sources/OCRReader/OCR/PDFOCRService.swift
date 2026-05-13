@@ -50,12 +50,19 @@ public actor PDFOCRService {
 
     /// Render a PDFPage to a CGImage at 2× scale via a CGContext.
     /// CGImage is Sendable on macOS 13+; NSImage is not, so we avoid it here.
+    /// Honours page rotation — rotated scans (90/270°) are rendered upright
+    /// so the OCR engine sees them in reading orientation.
     @MainActor
     private static func renderPage(_ page: PDFPage) throws -> CGImage {
         let box = page.bounds(for: .mediaBox)
+        let rotation = page.rotation
+        let display: CGSize = (rotation == 90 || rotation == 270)
+            ? CGSize(width: box.height, height: box.width)
+            : CGSize(width: box.width, height: box.height)
+
         let scale: CGFloat = 2.0
-        let pxW = max(Int(box.width * scale), 1)
-        let pxH = max(Int(box.height * scale), 1)
+        let pxW = max(Int(display.width * scale), 1)
+        let pxH = max(Int(display.height * scale), 1)
 
         guard let ctx = CGContext(
             data: nil,
@@ -70,7 +77,6 @@ public actor PDFOCRService {
         ctx.setFillColor(CGColor.white)
         ctx.fill(CGRect(x: 0, y: 0, width: pxW, height: pxH))
         ctx.scaleBy(x: scale, y: scale)
-        ctx.translateBy(x: -box.origin.x, y: -box.origin.y)
         page.draw(with: .mediaBox, to: ctx)
 
         guard let img = ctx.makeImage() else {

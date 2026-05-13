@@ -13,11 +13,13 @@ public enum OCRError: Error, LocalizedError {
     case engineFailure(String)
     case cancelled
     case toolMissing(String)
+    case alreadyOptimised(String)
     public var errorDescription: String? {
         switch self {
         case .engineFailure(let s): return "OCR engine: \(s)"
         case .cancelled: return "Cancelled."
         case .toolMissing(let s): return "Required tool missing: \(s)"
+        case .alreadyOptimised(let s): return s
         }
     }
 }

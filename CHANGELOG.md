@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.3.0 — 2026-05-13
+
+- **Banner UX overhauled.** Success messages auto-dismiss after 4s. Info and error messages are persistent until the user clicks the close button — fixes the case where a 3-second banner flashed past while the user was looking at Finder for the output file. Banner now carries an icon (✓ / i / ⚠) and outline colour per level (green / blue / orange).
+- **Save Reduced shows progress.** The toolbar button now displays a spinner with "Compressing…" while the compressor runs, and is disabled to prevent double-clicks. Compression yields to the run-loop so the spinner renders before PDFKit starts crunching.
+- **Friendlier "already optimised" path.** Instead of `Save failed: Already optimised…`, the banner now reads `PDF already well-compressed — no reduction possible. Source is X MB; a re-encoded copy would be Y MB. No file written.` It is shown as info (blue), not error.
+- **OCR rendering honours page rotation.** `PDFOCRService.renderPage` previously allocated a bitmap with unrotated mediaBox dimensions — rotated scans (common from phone-captured pages) were rendered into a mis-shaped canvas and OCR'd sideways. Now uses display dimensions.
+- **Fixed Apple Vision Thai-fallback bug.** Vision was running with `automaticallyDetectsLanguage = true`, which caused it to fit unsupported Indic scripts onto the closest visually-similar supported script — typically Thai — producing garbage like `สาย / ดิ / อะ` instead of returning nothing for Devanagari glyphs. Vision is now pinned to `en-US` only. Non-Latin glyphs are skipped cleanly. For Devanagari documents (including mixed Marathi + English), users should pick a Tesseract option from the language picker.
+- **Renamed to *Multi-Script PDF OCR*** (from *Legal OCR Reader*). Bundle identifier changed to `net.wolfgangrush.MultiScriptOCR`. App is positioned as a generic offline multi-script PDF OCR tool — legal documents are one supported use case among many (government documents, scanned books, research papers, business contracts, historical archives).
+- **Compressor rewritten — selective rasteriser.** The v0.2 compressor rasterised every page at 150 DPI / JPEG 0.7, which inflated digital-text PDFs and many low-DPI scans (output ended up larger than input). v0.3 detects whether each page has a real text layer:
+  - Pages with text are copied through unchanged (preserves searchability and stays tiny).
+  - Image-only / scan pages are rasterised at 110 DPI, JPEG 0.55, honouring page rotation so output displays upright.
+  - If the resulting PDF would be ≥ the input size, the app refuses to write and reports "already optimised — no further reduction possible" instead of silently producing a larger copy.
+- Banner now reports rasterised vs preserved page counts alongside the size reduction.
+- Removed dead `Reduce-File-Size.qfilter` resource (unused since v0.1.1 replaced the Quartz-filter approach).
+- Added **Help → Contact Support** menu item that opens a mailto link to `wolfgangrush@gmail.com`.
+- Info.plist now carries `NSHumanReadableCopyright` with the support email.
+
 ## v0.2.0 — 2026-05-09
 
 - **Bundled Tesseract 5.5 for offline Indian-language OCR.** All 12 major Indian-script traineddata files are now bundled into the app: Hindi, Marathi, Tamil, Telugu, Kannada, Malayalam, Gujarati, Punjabi, Bengali, Oriya, Urdu, Sanskrit. Plus mixed-script combinations (`hin+eng`, `mar+eng`) for documents that switch between Devanagari and Latin script.
