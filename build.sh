@@ -150,17 +150,34 @@ echo "  → sanity check: bundled tesseract languages…"
 TESSDATA_PREFIX="$TESSDATA_CHECK" "$APP_DIR/Contents/MacOS/tesseract" \
     --tessdata-dir "$TESSDATA_CHECK" --list-langs 2>&1 | head -20 || echo "  ⚠ tesseract sanity check failed"
 
-# ---- 4. Codesign (ad-hoc) -------------------------------------------------
-echo "[4/6] Code-signing (ad-hoc, deep)…"
-# Strip extended attributes that codesign rejects (resource forks, etc.)
+# ---- 4. Codesign ----------------------------------------------------------
+# If DEVELOPER_ID_IDENTITY env var is set (e.g. "Developer ID Application: Name (TEAMID)"),
+# we use it for hardened-runtime signing in preparation for notarisation.
+# Otherwise fall back to ad-hoc.
 xattr -cr "$APP_DIR" 2>/dev/null || true
-# Sign nested binaries first (dylibs, then tesseract, then the app itself)
-find "$APP_DIR/Contents/Frameworks" -name "*.dylib" -exec \
-    codesign --force --sign - --timestamp=none {} \; 2>/dev/null || true
-codesign --force --sign - --timestamp=none "$APP_DIR/Contents/MacOS/tesseract" 2>/dev/null || true
-codesign --force --deep --sign - \
-    --entitlements "$PROJECT_ROOT/entitlements.plist" \
-    "$APP_DIR" 2>&1 | tail -3 || echo "⚠ Codesign warnings; first launch needs right-click → Open"
+
+if [[ -n "${DEVELOPER_ID_IDENTITY:-}" ]]; then
+    echo "[4/6] Code-signing with Developer ID (hardened runtime)…"
+    SIGN_IDENTITY="$DEVELOPER_ID_IDENTITY"
+    SIGN_FLAGS=(--force --options runtime --timestamp)
+
+    # Sign nested binaries first (dylibs, then tesseract, then the app itself)
+    find "$APP_DIR/Contents/Frameworks" -name "*.dylib" -exec \
+        codesign "${SIGN_FLAGS[@]}" --sign "$SIGN_IDENTITY" {} \; 2>&1 | tail -3
+    codesign "${SIGN_FLAGS[@]}" --sign "$SIGN_IDENTITY" \
+        "$APP_DIR/Contents/MacOS/tesseract" 2>&1 | tail -3
+    codesign "${SIGN_FLAGS[@]}" --deep --sign "$SIGN_IDENTITY" \
+        --entitlements "$PROJECT_ROOT/entitlements.plist" \
+        "$APP_DIR" 2>&1 | tail -3
+else
+    echo "[4/6] Code-signing (ad-hoc, deep)…"
+    find "$APP_DIR/Contents/Frameworks" -name "*.dylib" -exec \
+        codesign --force --sign - --timestamp=none {} \; 2>/dev/null || true
+    codesign --force --sign - --timestamp=none "$APP_DIR/Contents/MacOS/tesseract" 2>/dev/null || true
+    codesign --force --deep --sign - \
+        --entitlements "$PROJECT_ROOT/entitlements.plist" \
+        "$APP_DIR" 2>&1 | tail -3 || echo "⚠ Codesign warnings; first launch needs right-click → Open"
+fi
 
 # ---- 5. Create DMG --------------------------------------------------------
 echo "[5/6] Creating DMG…"
@@ -187,8 +204,35 @@ else
         -ov -format UDZO "$DMG_PATH" 2>&1 | tail -3
 fi
 
-# ---- 6. Report ------------------------------------------------------------
-echo "[6/6] Done."
+# ---- 6. Notarise + staple (optional) --------------------------------------
+# If NOTARIZE_PROFILE env var is set (matching `xcrun notarytool store-credentials`
+# profile name), submit the DMG to Apple's notarisation service, wait for the
+# verdict, then staple the ticket onto both the .app and the DMG so Gatekeeper
+# accepts them offline.
+if [[ -n "${NOTARIZE_PROFILE:-}" ]]; then
+    echo "[6/7] Submitting DMG to Apple notarisation service…"
+    if xcrun notarytool submit "$DMG_PATH" \
+        --keychain-profile "$NOTARIZE_PROFILE" \
+        --wait 2>&1 | tee /tmp/notarise.log | tail -20; then
+
+        STATUS=$(grep -i "^[[:space:]]*status:" /tmp/notarise.log | tail -1 | awk '{print $2}')
+        if [[ "$STATUS" == "Accepted" ]]; then
+            echo "  → notarisation accepted. Stapling ticket…"
+            xcrun stapler staple "$APP_DIR"  2>&1 | tail -3
+            xcrun stapler staple "$DMG_PATH" 2>&1 | tail -3
+            echo "  ✅ Stapled. Gatekeeper will accept this app offline."
+        else
+            echo "  ❌ Notarisation status: $STATUS"
+            echo "     Run: xcrun notarytool log <submission-id> --keychain-profile $NOTARIZE_PROFILE"
+            echo "     to see Apple's reject reasons."
+        fi
+    else
+        echo "  ❌ Notarisation submission failed. See /tmp/notarise.log"
+    fi
+fi
+
+# ---- 7. Report ------------------------------------------------------------
+echo "[7/7] Done."
 APP_SIZE="$(du -sh "$APP_DIR" | awk '{print $1}')"
 DMG_SIZE="$(du -sh "$DMG_PATH" | awk '{print $1}')"
 echo ""
@@ -196,4 +240,13 @@ echo "✅ Build complete."
 echo "   App  : $APP_DIR  ($APP_SIZE)"
 echo "   DMG  : $DMG_PATH  ($DMG_SIZE)"
 echo ""
-echo "First launch: right-click → Open (ad-hoc signed)"
+if [[ -n "${NOTARIZE_PROFILE:-}" ]]; then
+    echo "Notarised + stapled — double-click works, no right-click → Open needed."
+else
+    echo "First launch: right-click → Open (ad-hoc signed)"
+    echo ""
+    echo "To produce a notarised release build, set:"
+    echo "  DEVELOPER_ID_IDENTITY=\"Developer ID Application: Name (TEAMID)\""
+    echo "  NOTARIZE_PROFILE=MultiScriptOCR-Notary"
+    echo "  bash build.sh"
+fi
