@@ -64,6 +64,20 @@ struct ContentView: View {
             }
             .disabled(doc.document == nil || doc.isRunningOCR)
 
+            Button(action: doc.saveWithOCR) {
+                if doc.isSavingWithOCR {
+                    HStack(spacing: 6) {
+                        ProgressView().scaleEffect(0.6).frame(width: 14, height: 14)
+                        Text("Saving…")
+                    }
+                } else {
+                    Label("Save with OCR", systemImage: "square.and.arrow.down")
+                }
+            }
+            .disabled(doc.document == nil || doc.isSavingWithOCR || doc.ocrPages.isEmpty)
+            .keyboardShortcut("s")
+            .help("Save the PDF uncompressed plus a .txt sidecar with the OCR text. Run OCR first.")
+
             Button(action: doc.saveReduced) {
                 if doc.isSavingReduced {
                     HStack(spacing: 6) {
@@ -75,7 +89,8 @@ struct ContentView: View {
                 }
             }
             .disabled(doc.document == nil || doc.isSavingReduced)
-            .keyboardShortcut("s")
+            .keyboardShortcut("s", modifiers: [.command, .shift])
+            .help("Compress the PDF (rasterises scan pages, preserves text pages).")
 
             if !doc.ocrPages.isEmpty {
                 Button(action: { doc.showOCRSidebar.toggle() }) {

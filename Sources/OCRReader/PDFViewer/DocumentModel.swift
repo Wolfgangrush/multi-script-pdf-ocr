@@ -26,6 +26,7 @@ final class DocumentModel: ObservableObject {
     @Published var isRunningOCR = false
     @Published var ocrProgressText = ""
     @Published var isSavingReduced = false
+    @Published var isSavingWithOCR = false
     @Published var banner: BannerMessage?
 
     @Published var ocrPages: [String] = []
@@ -114,6 +115,71 @@ final class DocumentModel: ObservableObject {
             showBanner("Tesseract not bundled correctly: \(msg)", level: .error)
         } catch {
             showBanner("OCR failed: \(error.localizedDescription)", level: .error)
+        }
+    }
+
+    /// v0.3.1: save the OCR'd document without compression.
+    /// Writes the PDF unchanged (preserves layout + quality) plus a paired
+    /// `.txt` sidecar containing the recognised text page-by-page. Use this
+    /// when you want a searchable record without the rasterisation cost of
+    /// Save Reduced.
+    func saveWithOCR() {
+        guard let pdf = document, let src = fileURL else { return }
+        if isSavingWithOCR { return }
+        if ocrPages.isEmpty {
+            showBanner("Run OCR first, then use Save with OCR.", level: .info)
+            return
+        }
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.pdf]
+        panel.nameFieldStringValue = src.deletingPathExtension().lastPathComponent + "-ocr.pdf"
+        panel.directoryURL = src.deletingLastPathComponent()
+        panel.prompt = "Save with OCR"
+        panel.message = "Saves the PDF uncompressed plus a .txt sidecar with the OCR text."
+        let textSnapshot = ocrAllText
+        panel.begin { [weak self] resp in
+            guard resp == .OK, let outURL = panel.url else { return }
+            Task { @MainActor [weak self] in
+                await self?.performSaveWithOCR(pdf: pdf, outputURL: outURL, ocrText: textSnapshot)
+            }
+        }
+    }
+
+    private func performSaveWithOCR(pdf: PDFDocument, outputURL: URL, ocrText: String) async {
+        isSavingWithOCR = true
+        showBanner("Saving \(outputURL.lastPathComponent)…", level: .info, autoDismiss: false)
+        await Task.yield()
+        defer { isSavingWithOCR = false }
+
+        do {
+            // Clean copy via dataRepresentation — no rasterisation, layout
+            // preserved bit-for-bit (within PDFKit's serialiser).
+            guard let pdfData = pdf.dataRepresentation() else {
+                throw OCRError.engineFailure("Could not serialise PDF")
+            }
+            if FileManager.default.fileExists(atPath: outputURL.path) {
+                try? FileManager.default.removeItem(at: outputURL)
+            }
+            try pdfData.write(to: outputURL)
+
+            // Paired sidecar — same basename, .txt extension, in the same folder.
+            let txtURL = outputURL.deletingPathExtension().appendingPathExtension("txt")
+            if FileManager.default.fileExists(atPath: txtURL.path) {
+                try? FileManager.default.removeItem(at: txtURL)
+            }
+            try ocrText.write(to: txtURL, atomically: true, encoding: .utf8)
+
+            let bcf = ByteCountFormatter()
+            bcf.allowedUnits = [.useMB, .useKB]
+            bcf.countStyle = .file
+            let pdfSize = bcf.string(fromByteCount: Int64(pdfData.count))
+            let txtSize = bcf.string(fromByteCount: Int64(ocrText.utf8.count))
+            showBanner(
+                "Saved \(outputURL.lastPathComponent) (\(pdfSize)) + \(txtURL.lastPathComponent) (\(txtSize))",
+                level: .success
+            )
+        } catch {
+            showBanner("Save failed: \(error.localizedDescription)", level: .error)
         }
     }
 

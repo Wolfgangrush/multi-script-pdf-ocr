@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.1 — 2026-05-25
+
+- **Fixed CPU pegging / overheating / occasional crash on large PDFs.** `PDFOCRService.renderPage` was annotated `@MainActor` in v0.3.0, which meant the bitmap render for every page ran on the UI thread. On high-DPI scans of long PDFs (≥ 50 pages) page.draw could occupy main for 2-5s per page, blocking input + redraw, heating the chassis, and very occasionally tripping the AppKit watchdog into killing the app. The renderer now runs on the `PDFOCRService` actor's executor (off main). PDFKit allows render access from any thread provided no concurrent mutation — the actor already serialises page access, so this is safe.
+- **Added thermal breathing room between pages.** A 60ms `Task.sleep` now interleaves between page-OCR iterations. The cumulative cost is ≈ 3s on a 50-page run, but it caps thermal load and lets UI redraw / user input slot in without the loop pinning a CPU core continuously.
+- **New `Save with OCR` toolbar button** (and `⌘S` menu entry — Save Reduced moved to `⇧⌘S`). After running OCR, this saves the PDF **uncompressed** (clean copy, no rasterisation, layout preserved) plus a paired `.txt` sidecar with the recognised text page-by-page. Closes the gap where the only persistence path forced compression. Use when you want a searchable record without the size-reduction cost. Disabled until OCR has been run.
+
 ## v0.3.0 — 2026-05-13
 
 - **App icon added.** Custom AppIcon.icns (16/32/128/256/512 + @2x retina) generated from a 1024×1024 source and wired via `CFBundleIconFile`. The icon shows a document with an `अ` glyph and OCR magnifier — signalling the multi-script PDF OCR purpose.

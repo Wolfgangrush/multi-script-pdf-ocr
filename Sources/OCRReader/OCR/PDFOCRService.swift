@@ -40,11 +40,18 @@ public actor PDFOCRService {
             let text = ordered.map { $0.text }.joined(separator: "\n")
             pageText(i + 1, text)
             progress(i + 1)
+            // v0.3.1: thermal breathing room between pages. On large PDFs (50+
+            // pages) the old loop pegged a CPU core continuously, the chassis
+            // heated, and the OS watchdog occasionally killed the app. A 60ms
+            // yield per page caps thermal load and lets other work (UI redraw,
+            // user input) interleave. Negligible total-time cost: 60ms × 50
+            // pages = 3s on a 30-60s OCR run.
+            try await Task.sleep(nanoseconds: 60_000_000)
         }
     }
 
     private func ocrPage(page: PDFPage) async throws -> [RecognizedText] {
-        let cg = try await Self.renderPage(page)
+        let cg = try Self.renderPage(page)
         return try await engine.recognize(cgImage: cg)
     }
 
@@ -52,7 +59,14 @@ public actor PDFOCRService {
     /// CGImage is Sendable on macOS 13+; NSImage is not, so we avoid it here.
     /// Honours page rotation — rotated scans (90/270°) are rendered upright
     /// so the OCR engine sees them in reading orientation.
-    @MainActor
+    ///
+    /// v0.3.1: was @MainActor in v0.3.0, which blocked the UI thread for the
+    /// full duration of the bitmap render. On large scans (300+ DPI, A4)
+    /// page.draw can take 2-5s — long enough for the AppKit watchdog to mark
+    /// the app non-responsive and (rarely) terminate it. PDFKit allows read /
+    /// render access from any thread provided the PDFDocument isn't being
+    /// mutated concurrently; the calling actor (`PDFOCRService`) already
+    /// serialises page access, so running off the main actor is safe.
     private static func renderPage(_ page: PDFPage) throws -> CGImage {
         let box = page.bounds(for: .mediaBox)
         let rotation = page.rotation

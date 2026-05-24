@@ -20,8 +20,11 @@ struct MultiScriptOCRApp: App {
                     .disabled(doc.document == nil)
             }
             CommandGroup(replacing: .saveItem) {
-                Button("Save Reduced") { doc.saveReduced() }
+                Button("Save with OCR…") { doc.saveWithOCR() }
                     .keyboardShortcut("s")
+                    .disabled(doc.document == nil || doc.ocrPages.isEmpty)
+                Button("Save Reduced…") { doc.saveReduced() }
+                    .keyboardShortcut("s", modifiers: [.command, .shift])
                     .disabled(doc.document == nil)
             }
             CommandGroup(replacing: .help) {
